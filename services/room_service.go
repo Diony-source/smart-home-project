@@ -2,27 +2,27 @@ package services
 
 import "smart-home-project/models"
 
-type RoomServices struct {
-	Room *models.Room
+type RoomService struct {
+    Room *models.Room
 }
 
-func NewRoomServices(room *models.Room) *RoomServices {
-	return &RoomServices{
-		Room: room,
-	}
+func NewRoomService(room *models.Room) *RoomService {
+    return &RoomService{
+        Room: room,
+    }
 }
 
-func (r *RoomServices) ToogleLight() {
-	r.Room.LightOn = !r.Room.LightOn
+func (r *RoomService) ToggleLight() {
+    r.Room.LightOn = !r.Room.LightOn
 }
 
-func (r *RoomServices) ToogleDivice(deviceName string) {
-	if device, exist := r.Room.Devices[deviceName]; exist {
-		device.IsOn = !device.IsOn
-		r.Room.Devices[deviceName] = device
-	}
+func (r *RoomService) ToggleDevice(deviceName string) {
+    if device, exists := r.Room.Devices[deviceName]; exists {
+        device.IsOn = !device.IsOn
+        r.Room.Devices[deviceName] = device
+    }
 }
 
-func (r *RoomServices) SetTemperature(temp int) {
-	r.Room.Temperature = temp
+func (r *RoomService) SetTemperature(temp int) {
+    r.Room.Temperature = temp
 }
