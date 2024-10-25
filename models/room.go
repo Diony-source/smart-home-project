@@ -1,15 +1,8 @@
 package models
 
-type SecurityStatus struct {
-	DoorOpen bool
-	WindowOpen bool
-	MotionDetected bool
-}
-
 type Room struct {
 	Name string
 	LightOn bool
-	Temperature int
+	Temperature float64
 	Devices map[string]Devices
-	security SecurityStatus
 }

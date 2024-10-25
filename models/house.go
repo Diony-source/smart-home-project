@@ -8,5 +8,5 @@ type House struct {
 	Rooms map[string]Room
 	Corridor Corridor
 	MainDoorLocked bool
-	TotalTemperature int
+	TotalTemperature float64
 }
