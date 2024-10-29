@@ -1,36 +1,48 @@
 package controllers
 
 import (
-    "net/http"
-    "encoding/json"
-    "smart-home-project/services"
-	"smart-home-project/models"
+	"encoding/json"
+	"net/http"
+	"smart-home-project/repositories"
+	"strconv"
 )
 
-type RoomController struct {
-    RoomService *services.RoomService
-}
+type RoomController struct{}
 
-func NewRoomController(room *models.Room, house *models.House) *RoomController {
-    roomService := services.NewRoomService(room, house)
-    return &RoomController{
-        RoomService: roomService,
-    }
+func NewRoomController() *RoomController {
+	return &RoomController{}
 }
 
 func (r *RoomController) ToggleLight(w http.ResponseWriter, req *http.Request) {
-    r.RoomService.ToggleLight()
-    json.NewEncoder(w).Encode(r.RoomService.Room)
+	roomID, err := strconv.Atoi(req.URL.Query().Get("room_id"))
+	if err != nil {
+		http.Error(w, "Invalid room ID", http.StatusBadRequest)
+		return
+	}
+
+	err = repositories.ToggleRoomLight(roomID)
+	if err != nil {
+		http.Error(w, "Failed to toggle room light", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode("Room light toggled successfully")
 }
 
 func (r *RoomController) ToggleDevice(w http.ResponseWriter, req *http.Request) {
-    deviceName := req.URL.Query().Get("device")
-    if deviceName == "" {
-        http.Error(w, "Device name not specified", http.StatusBadRequest)
-        return
-    }
-    r.RoomService.ToggleDevice(deviceName)
-    json.NewEncoder(w).Encode(r.RoomService.Room)
+	deviceID, err := strconv.Atoi(req.URL.Query().Get("device_id"))
+	if err != nil {
+		http.Error(w, "Invalid device ID", http.StatusBadRequest)
+		return
+	}
+
+	err = repositories.ToggleDeviceStatus(deviceID)
+	if err != nil {
+		http.Error(w, "Failed to toggle device status", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode("Device status toggled successfully")
 }
 
 func (r *RoomController) SetTemperature(w http.ResponseWriter, req *http.Request) {
@@ -38,27 +50,29 @@ func (r *RoomController) SetTemperature(w http.ResponseWriter, req *http.Request
         Temperature float64 `json:"temperature"`
     }
 
-    err := json.NewDecoder(req.Body).Decode(&data)
+    roomID, err := strconv.Atoi(req.URL.Query().Get("room_id"))
     if err != nil {
-        http.Error(w, "Invalid data format", http.StatusBadRequest)
+        http.Error(w, "Invalid room ID", http.StatusBadRequest)
         return
     }
 
-    if data.Temperature < 10.0 || data.Temperature > 30.0 {
-        http.Error(w, "Temperature must be between 10.0 and 30.0 degrees.", http.StatusBadRequest)
+    err = json.NewDecoder(req.Body).Decode(&data)
+    if err != nil || data.Temperature < 10.0 || data.Temperature > 30.0 {
+        http.Error(w, "Invalid temperature", http.StatusBadRequest)
         return
     }
 
-    err = r.RoomService.SetTemperature(data.Temperature)
+    err = repositories.UpdateRoomTemperature(roomID, data.Temperature)
     if err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
+        http.Error(w, "Failed to update room temperature", http.StatusInternalServerError)
         return
     }
 
-    json.NewEncoder(w).Encode(r.RoomService.Room)
-}
+    err = repositories.UpdateHouseTemperature()
+    if err != nil {
+        http.Error(w, "Failed to update house temperature", http.StatusInternalServerError)
+        return
+    }
 
-func (r *RoomController) GetRoomStatus(w http.ResponseWriter, req *http.Request) {
-    json.NewEncoder(w).Encode(r.RoomService.Room)
+    json.NewEncoder(w).Encode("Room temperature and house average temperature updated successfully")
 }
-

@@ -1,56 +1,61 @@
 package repositories
 
 import (
-    "encoding/json"
-    "os"
-    "smart-home-project/models"
-    "log"
+	"context"
+	"smart-home-project/models"
 )
 
-// RoomRepository manages room data persistence.
-type RoomRepository struct {
-    filePath string
+func GetRoomsStatus() ([]models.Room, error) {
+	rows, err := DB.Query(context.Background(), "SELECT id, name, light_on, temperature FROM rooms")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []models.Room
+	for rows.Next() {
+		room := models.Room{}
+		if err := rows.Scan(&room.ID, &room.Name, &room.LightOn, &room.Temperature); err != nil {
+			return nil, err
+		}
+
+		device, err := GetDeviceByRoomID(room.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		room.Devices = map[string]models.Devices{
+			device.Name: device,
+		}
+
+		rooms = append(rooms, room)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return rooms, nil
 }
 
-// NewRoomRepository creates a new RoomRepository with a given file path.
-func NewRoomRepository(filePath string) *RoomRepository {
-    return &RoomRepository{filePath: filePath}
+func GetDeviceByRoomID(roomID int) (models.Devices, error) {
+	device := models.Devices{}
+	err := DB.QueryRow(context.Background(), "SELECT name, is_on FROM devices WHERE room_id = $1", roomID).Scan(
+		&device.Name,
+		&device.IsOn,
+	)
+	if err != nil {
+		return models.Devices{}, err
+	}
+	return device, nil
 }
 
-// LoadRooms loads rooms data from a JSON file.
-func (r *RoomRepository) LoadRooms() (map[string]models.Room, error) {
-    file, err := os.Open(r.filePath)
-    if err != nil {
-        log.Println("Error opening file:", err)
-        return nil, err
-    }
-    defer file.Close()
-
-    rooms := make(map[string]models.Room)
-    decoder := json.NewDecoder(file)
-    err = decoder.Decode(&rooms)
-    if err != nil {
-        log.Println("Error decoding JSON:", err)
-        return nil, err
-    }
-    return rooms, nil
+func ToggleRoomLight(roomID int) error {
+	_, err := DB.Exec(context.Background(), "UPDATE rooms SET light_on = NOT light_on WHERE id = $1", roomID)
+	return err
 }
 
-// SaveRooms saves rooms data to a JSON file.
-func (r *RoomRepository) SaveRooms(rooms map[string]models.Room) error {
-    file, err := os.Create(r.filePath)
-    if err != nil {
-        log.Println("Error creating file:", err)
-        return err
-    }
-    defer file.Close()
-
-    encoder := json.NewEncoder(file)
-    encoder.SetIndent("", "  ")
-    err = encoder.Encode(rooms)
-    if err != nil {
-        log.Println("Error encoding JSON:", err)
-        return err
-    }
-    return nil
+func UpdateRoomTemperature(roomID int, newTemp float64) error {
+	_, err := DB.Exec(context.Background(), "UPDATE rooms SET temperature = $1 WHERE id = $2", newTemp, roomID)
+	return err
 }

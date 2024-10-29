@@ -2,57 +2,66 @@ package controllers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
-	"smart-home-project/models"
-	"smart-home-project/services"
+	"smart-home-project/repositories"
 )
 
-type HomeController struct {
-	HouseService *services.HouseService
-}
+type HomeController struct{}
 
-func NewHomeController(house *models.House) *HomeController {
-	houseService := services.NewHouseService(house)
-	return &HomeController{
-		HouseService: houseService,
-	}
+func NewHomeController() *HomeController {
+	return &HomeController{}
 }
 
 func (h *HomeController) ToggleMainDoorLock(w http.ResponseWriter, req *http.Request) {
-	h.HouseService.ToggleMainDoorLock()
-	json.NewEncoder(w).Encode(h.HouseService.House)
+	err := repositories.ToggleMainDoorLock()
+	if err != nil {
+		http.Error(w, "Failed to toggle main door lock", http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode("Main door lock toggled successfully")
 }
 
 func (h *HomeController) SetTotalTemperature(w http.ResponseWriter, req *http.Request) {
-    var data struct {
-        Temperature float64 `json:"temperature"`
-    }
-
-    err := json.NewDecoder(req.Body).Decode(&data)
+    err := repositories.UpdateHouseTemperature()
     if err != nil {
-        http.Error(w, "Invalid data format", http.StatusBadRequest)
+        http.Error(w, "Failed to update house temperature", http.StatusInternalServerError)
         return
     }
 
-    if data.Temperature < 10.0 || data.Temperature > 30.0 {
-        http.Error(w, "Temperature must be between 10.0 and 30.0 degrees.", http.StatusBadRequest)
-        return
-    }
+    json.NewEncoder(w).Encode("House temperature updated based on room average successfully")
+}
 
-    err = h.HouseService.SetTotalTemperature(data.Temperature)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
+func (h *HomeController) GetHouseStatus(w http.ResponseWriter, req *http.Request) {
+	house, err := repositories.GetHouseStatus()
+	if err != nil {
+		log.Println("Error getting house status:", err)
+		http.Error(w, "Failed to get house status", http.StatusInternalServerError)
+		return
+	}
 
-    json.NewEncoder(w).Encode(h.HouseService.House)
+	rooms, err := repositories.GetRoomsStatus()
+	if err != nil {
+		log.Println("Error getting rooms status:", err)
+		http.Error(w, "Failed to get rooms status", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"house": house,
+		"rooms": rooms,
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 
 func (h *HomeController) ToggleCorridorLight(w http.ResponseWriter, req *http.Request) {
-	h.HouseService.ToggleCorridorLight()
-	json.NewEncoder(w).Encode(h.HouseService.House)
-}
+    err := repositories.ToggleCorridorLight()
+    if err != nil {
+        log.Println("Error toggling corridor light:", err)
+        http.Error(w, "Failed to toggle corridor light", http.StatusInternalServerError)
+        return
+    }
 
-func (h *HomeController) GetHomeStatus(w http.ResponseWriter, req *http.Request) {
-	json.NewEncoder(w).Encode(h.HouseService.House)
+    json.NewEncoder(w).Encode("Corridor light toggled successfully")
 }

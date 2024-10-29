@@ -6,13 +6,11 @@ import (
 	"smart-home-project/models"
 )
 
-// RoomService, odalar üzerindeki işlemleri yönetir.
 type RoomService struct {
 	Room  *models.Room
-	House *models.House // House referansı eklendi
+	House *models.House
 }
 
-// NewRoomService, hem oda hem de ev referansını alacak şekilde güncellendi.
 func NewRoomService(room *models.Room, house *models.House) *RoomService {
 	return &RoomService{
 		Room:  room,
@@ -40,7 +38,6 @@ func (r *RoomService) SetTemperature(newTemp float64) error {
 
 	r.Room.Temperature = newTemp
 
-	// Oda sıcaklığı güncellendiğinde evin genel sıcaklığını güncelle.
 	if r.House != nil {
 		r.updateHouseTemperature()
 	}
@@ -48,7 +45,6 @@ func (r *RoomService) SetTemperature(newTemp float64) error {
 	return nil
 }
 
-// updateHouseTemperature, odaların ortalama sıcaklığını alarak evin toplam sıcaklığını günceller.
 func (r *RoomService) updateHouseTemperature() {
 	totalTemp := 0.0
 	roomCount := 0

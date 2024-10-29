@@ -1,56 +1,41 @@
 package repositories
 
 import (
-    "encoding/json"
-    "os"
-    "smart-home-project/models"
-    "log"
+	"context"
+	"smart-home-project/models"
 )
 
-// HouseRepository manages house data persistence.
-type HouseRepository struct {
-    filePath string
+func ToggleMainDoorLock() error {
+	_, err := DB.Exec(context.Background(), "UPDATE houses SET main_door_locked = NOT main_door_locked WHERE id = 1")
+	return err
 }
 
-// NewHouseRepository creates a new HouseRepository with a given file path.
-func NewHouseRepository(filePath string) *HouseRepository {
-    return &HouseRepository{filePath: filePath}
-}
+func UpdateHouseTemperature() error {
+    var avgTemperature float64
 
-// LoadHouse loads house data from a JSON file.
-func (r *HouseRepository) LoadHouse() (*models.House, error) {
-    file, err := os.Open(r.filePath)
+    err := DB.QueryRow(context.Background(), "SELECT AVG(temperature) FROM rooms").Scan(&avgTemperature)
     if err != nil {
-        log.Println("Error opening file:", err)
-        return nil, err
-    }
-    defer file.Close()
-
-    var house models.House
-    decoder := json.NewDecoder(file)
-    err = decoder.Decode(&house)
-    if err != nil {
-        log.Println("Error decoding JSON:", err)
-        return nil, err
-    }
-    return &house, nil
-}
-
-// SaveHouse saves house data to a JSON file.
-func (r *HouseRepository) SaveHouse(house *models.House) error {
-    file, err := os.Create(r.filePath)
-    if err != nil {
-        log.Println("Error creating file:", err)
         return err
     }
-    defer file.Close()
 
-    encoder := json.NewEncoder(file)
-    encoder.SetIndent("", "  ")
-    err = encoder.Encode(house)
-    if err != nil {
-        log.Println("Error encoding JSON:", err)
-        return err
-    }
-    return nil
+    _, err = DB.Exec(context.Background(), "UPDATE houses SET total_temperature = $1 WHERE id = 1", avgTemperature)
+    return err
+}
+
+func GetHouseStatus() (*models.House, error) {
+	house := models.House{}
+	err := DB.QueryRow(context.Background(), "SELECT main_door_locked, total_temperature, corridor_light_on FROM houses WHERE id = 1").Scan(
+		&house.MainDoorLocked,
+		&house.TotalTemperature,
+		&house.Corridor.LightOn,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &house, nil
+}
+
+func ToggleCorridorLight() error {
+    _, err := DB.Exec(context.Background(), "UPDATE houses SET corridor_light_on = NOT corridor_light_on WHERE id = 1")
+    return err
 }

@@ -1,8 +1,9 @@
 package models
 
 type Room struct {
-	Name string
-	LightOn bool
-	Temperature float64
-	Devices map[string]Devices
+	ID          int                `json:"id"`
+	Name        string             `json:"name"`
+	LightOn     bool               `json:"light_on"`
+	Temperature float64            `json:"temperature"`
+	Devices     map[string]Devices `json:"devices"`
 }

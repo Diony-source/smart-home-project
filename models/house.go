@@ -5,8 +5,8 @@ type Corridor struct {
 }
 
 type House struct {
-	Rooms map[string]Room
-	Corridor Corridor
-	MainDoorLocked bool
+	Rooms            map[string]Room
+	Corridor         Corridor
+	MainDoorLocked   bool
 	TotalTemperature float64
 }
