@@ -1,33 +1,33 @@
 package repositories
 
 import (
-	"context"
-	"log"
-	"time"
-
-	"github.com/jackc/pgx/v4/pgxpool"
+    "context"
+    "fmt"
+    "os"
+    "github.com/jackc/pgx/v4/pgxpool"
+    "log"
 )
 
 var DB *pgxpool.Pool
 
 func ConnectDatabase() error {
-	dsn := "postgres://myuser:mypassword@localhost:5432/smarthome"
-	var err error
+    dbHost := os.Getenv("DB_HOST")
+    dbUser := os.Getenv("DB_USER")
+    dbPassword := os.Getenv("DB_PASSWORD")
+    dbName := os.Getenv("DB_NAME")
 
-	config, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		return err
-	}
+    dsn := fmt.Sprintf("postgres://%s:%s@%s:5432/%s", dbUser, dbPassword, dbHost, dbName)
 
-	config.MaxConns = 10
-	config.MinConns = 1
-	config.MaxConnLifetime = time.Hour
+    config, err := pgxpool.ParseConfig(dsn)
+    if err != nil {
+        return err
+    }
 
-	DB, err = pgxpool.ConnectConfig(context.Background(), config)
-	if err != nil {
-		return err
-	}
+    DB, err = pgxpool.ConnectConfig(context.Background(), config)
+    if err != nil {
+        return err
+    }
 
-	log.Println("Connected to Postgresql database")
-	return nil
+    log.Println("Connected to PostgreSQL database")
+    return nil
 }
