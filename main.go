@@ -5,12 +5,19 @@ import (
 	"net/http"
 	"smart-home-project/api"
 	"smart-home-project/repositories"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := repositories.ConnectDatabase()
+	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Database connection failed: ", err)
+		log.Println("No .env file found, using default environment variables")
+	}
+
+	err = repositories.ConnectDatabase()
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
 	}
 
 	router := api.Router()
