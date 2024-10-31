@@ -1,7 +1,10 @@
+// api/router.go
 package api
 
 import (
+	"net/http"
 	"smart-home-project/controllers"
+	"smart-home-project/middleware"
 
 	"github.com/gorilla/mux"
 )
@@ -11,15 +14,22 @@ func Router() *mux.Router {
 
 	homeController := controllers.NewHomeController()
 	roomController := controllers.NewRoomController()
+	authController := controllers.NewAuthController()
 
-	router.HandleFunc("/api/house/lock", homeController.ToggleMainDoorLock).Methods("POST")
-	router.HandleFunc("/api/house/temperature", homeController.SetTotalTemperature).Methods("POST")
-	router.HandleFunc("/api/house/status", homeController.GetHouseStatus).Methods("GET")
-	router.HandleFunc("/api/house/corridor-light", homeController.ToggleCorridorLight).Methods("POST")
+	// Auth Routes
+	router.HandleFunc("/api/auth/register", authController.Register).Methods("POST")
+	router.HandleFunc("/api/auth/login", authController.Login).Methods("POST")
 
-	router.HandleFunc("/api/room/light", roomController.ToggleLight).Methods("POST")
-	router.HandleFunc("/api/room/device", roomController.ToggleDevice).Methods("POST")
-	router.HandleFunc("/api/room/temperature", roomController.SetTemperature).Methods("POST")
+	// Protected Routes with Role-based Authorization
+	router.Handle("/api/house/status", middleware.RoleAuth("admin")(http.HandlerFunc(homeController.GetHouseStatus))).Methods("GET")
+	router.Handle("/api/house/corridor-light", middleware.RoleAuth("admin", "user", "guest")(http.HandlerFunc(homeController.ToggleCorridorLight))).Methods("POST")
+	router.Handle("/api/house/lock", middleware.RoleAuth("admin")(http.HandlerFunc(homeController.ToggleMainDoorLock))).Methods("POST")
+	router.Handle("/api/house/temperature", middleware.RoleAuth("admin", "user")(http.HandlerFunc(homeController.SetTotalTemperature))).Methods("POST")
+
+	router.Handle("/api/room/light", middleware.RoleAuth("admin", "user", "guest")(http.HandlerFunc(roomController.ToggleLight))).Methods("POST")
+	router.Handle("/api/room/temperature", middleware.RoleAuth("admin", "user")(http.HandlerFunc(roomController.SetTemperature))).Methods("POST")
+
+	router.Handle("/api/room/device", middleware.RoleAuth("admin", "user")(http.HandlerFunc(roomController.ToggleDevice))).Methods("POST")
 
 	return router
 }

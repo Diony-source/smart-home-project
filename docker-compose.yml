@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.9'
 
 services:
   postgres:
@@ -11,21 +11,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    command: ["./app"]
-    depends_on:
-      - postgres
-    ports:
-      - "8080:8080"
-    environment:
-      DB_HOST: ${DB_HOST}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
 
 volumes:
   postgres-data:
